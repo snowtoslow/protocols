@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"protocols/constants"
@@ -25,27 +24,31 @@ func NewSocket(networkType string, port string) *Socket {
 // need to split
 func (socket *Socket) ReceiveMessage(connection *net.UDPConn) (valToRet string, err error) {
 	var receivedStruct *models.Packet
-	var myMagicBytes string
 
 	buffer := make([]byte, constants.BUFF_SIZE)
 	for {
 
-		_, _, err := connection.ReadFromUDP(buffer)
-
+		n, address, err := connection.ReadFromUDP(buffer)
 		if err != nil {
-			return "", err
+			return "err1", err
+		}
+		log.Println("Address in Receive:", address, n)
+		log.Println("Buffer in Receive: ", string(buffer[:n]))
+		if err = json.Unmarshal(buffer[:n], &receivedStruct); err != nil {
+			return "err2", err
 		}
 
-		err = json.Unmarshal(buffer, &receivedStruct)
-		if err != nil {
-			return "", err
-		}
+		log.Println("Structure after unmarshaling in receive:", receivedStruct)
 
 		if utils.ValidatePacket(receivedStruct) {
-			myMagicBytes = fmt.Sprintf("%v", utils.CreatePacket("ack"))
-			_, err = connection.Write([]byte(myMagicBytes))
+			b, err := json.Marshal(utils.CreatePacket("connect"))
 			if err != nil {
-				return "", err
+				return "err3", err
+			}
+
+			_, err = connection.WriteToUDP(b, address)
+			if err != nil {
+				return "err4", err
 			}
 
 			if receivedStruct.Payload == "connect" {
@@ -56,12 +59,55 @@ func (socket *Socket) ReceiveMessage(connection *net.UDPConn) (valToRet string, 
 				valToRet = receivedStruct.Payload
 			}
 		} else {
-			myMagicBytes = fmt.Sprintf("%v", utils.CreatePacket("nack"))
+			b, err := json.Marshal(utils.CreatePacket("nack"))
+			if err != nil {
+				return "err5", err
+			}
 
-			_, err = connection.Write([]byte(myMagicBytes))
+			_, err = connection.WriteToUDP(b, address)
+			if err != nil {
+				return valToRet, err
+			}
 		}
-		return valToRet, err
+
+		/*_, _, err := connection.ReadFromUDP(buffer)
+
+		if err != nil {
+			return "err1", err
+		}
+		log.Println("BUFFER:",string(buffer))
+		if err = json.Unmarshal(buffer, &receivedStruct);err!=nil{
+			return "err2", err
+		}
+
+
+		if utils.ValidatePacket(receivedStruct) {
+			myMagicBytes, err := json.Marshal(utils.CreatePacket("ack"))
+			// Convert bytes to string.
+			if err!=nil {
+				return "err3",err
+			}
+			_, err = connection.Write(myMagicBytes)
+			if err != nil {
+				return "err4", err
+			}
+
+			if receivedStruct.Payload == "connect" {
+				//socket.port = address.Port
+				log.Println("connection established!")
+				return "connection established!", nil
+			} else {
+				valToRet = receivedStruct.Payload
+			}
+		} else {
+			myMagicBytes, err := json.Marshal(utils.CreatePacket("nack"))
+			// Convert bytes to string.
+			if err!=nil {
+				return valToRet,err
+			}
+			_, err = connection.Write(myMagicBytes)*/
 	}
+	//return valToRet, err
 }
 
 func (socket *Socket) SendMessage(message string, connection *net.UDPConn) (err error) {
@@ -70,8 +116,56 @@ func (socket *Socket) SendMessage(message string, connection *net.UDPConn) (err 
 
 	var receivedStruct *models.Packet
 
-	myMagicBytes := fmt.Sprintf("%v", utils.CreatePacket(message))
-	_, err = connection.Write([]byte(myMagicBytes))
+	myMagicPackage := utils.CreatePacket(message)
+
+	b, err := json.Marshal(myMagicPackage)
+	if err != nil {
+		return err
+	}
+
+	_, err = connection.Write(b)
+	if err != nil {
+		return err
+	}
+
+	n, address, err := connection.ReadFromUDP(buffer)
+	if err != nil {
+		return
+	}
+
+	log.Println("ADDRESS in send: ", address)
+	log.Println("BUFFER in send: ", buffer)
+	err = json.Unmarshal(buffer[:n], &receivedStruct)
+	if err != nil {
+		return
+	}
+
+	if receivedStruct.Payload != "nack" {
+		b, err := json.Marshal(myMagicPackage)
+		if err != nil {
+			return err
+		}
+
+		_, err = connection.Write(b)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = connection.ReadFromUDP(buffer)
+
+		if err != nil {
+			return err
+		}
+
+		log.Println("LAST BUFFER:", string(buffer))
+	}
+
+	/*myMagicBytes, err := json.Marshal(utils.CreatePacket(message))
+	// Convert bytes to string.
+	if err!=nil {
+		return
+	}
+	_, err = connection.Write(myMagicBytes)
 
 	if err != nil {
 		return
@@ -89,7 +183,7 @@ func (socket *Socket) SendMessage(message string, connection *net.UDPConn) (err 
 	}
 
 	if receivedStruct.Payload != "nack" {
-		_, err := connection.Write([]byte(myMagicBytes))
+		_, err := connection.Write(myMagicBytes)
 		if err != nil {
 			return err
 		}
@@ -98,7 +192,7 @@ func (socket *Socket) SendMessage(message string, connection *net.UDPConn) (err 
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 
 	return nil
 }

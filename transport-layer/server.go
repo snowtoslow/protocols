@@ -6,6 +6,9 @@ import (
 )
 
 func main() {
+
+	log.Println("SERVER")
+
 	socket := protocol.NewSocket("udp4", ":1234")
 
 	udpAddress, err := socket.CreateUpdAddress()

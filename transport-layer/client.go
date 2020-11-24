@@ -7,6 +7,8 @@ import (
 
 func main() {
 
+	log.Println("CLIENT")
+
 	socket := protocol.NewSocket("udp4", "127.0.0.1:1234")
 
 	udpAddress, err := socket.CreateUpdAddress()
@@ -19,13 +21,13 @@ func main() {
 		log.Println(err)
 	}
 
+	defer connection.Close()
+
 	receivedValue, err := socket.ReceiveMessage(connection)
 
 	if err != nil {
 		log.Println(err)
 	}
-
-	defer connection.Close()
 
 	log.Println("RECEIVED VALUE:", receivedValue)
 

@@ -1,6 +1,6 @@
 package models
 
 type Packet struct {
-	Payload  string
-	CheckSum string
+	Payload  string `json:"payload"`
+	CheckSum string `json:"checksum"`
 }
