@@ -18,9 +18,7 @@ func main() {
 		log.Println(err)
 	}
 
-	if err != nil {
-		log.Println(err)
-	}
+	defer connection.Close()
 
 	myValue, err := socket.ReceiveMessage(connection)
 	if err != nil {
@@ -29,7 +27,7 @@ func main() {
 
 	log.Println("MY VALUES SERVER:", myValue)
 
-	if err = socket.SendMessage("vova mtf lab", udpAddress, connection); err != nil {
+	if err = socket.SendMessage("vova mtf lab", connection); err != nil {
 		log.Println(err)
 	}
 
@@ -39,7 +37,7 @@ func main() {
 		log.Println(err)
 	}
 
-	if err = socket.SendMessage(newVal+"-no you!", udpAddress, connection); err != nil {
+	if err = socket.SendMessage(newVal+"-no you!", connection); err != nil {
 		log.Println(err)
 	}
 

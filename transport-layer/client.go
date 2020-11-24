@@ -25,9 +25,11 @@ func main() {
 		log.Println(err)
 	}
 
+	defer connection.Close()
+
 	log.Println("RECEIVED VALUE:", receivedValue)
 
-	if err = socket.SendMessage(receivedValue+"vova", udpAddress, connection); err != nil {
+	if err = socket.SendMessage(receivedValue+"vova", connection); err != nil {
 		log.Println(err)
 	}
 
@@ -37,7 +39,7 @@ func main() {
 		log.Println(err)
 	}
 
-	if err = socket.SendMessage(newVal, udpAddress, connection); err != nil {
+	if err = socket.SendMessage(newVal, connection); err != nil {
 		log.Println(err)
 	}
 
