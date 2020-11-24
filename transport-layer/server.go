@@ -6,29 +6,43 @@ import (
 )
 
 func main() {
-	socket := protocol.NewSocket("udp4", ":8080")
+	socket := protocol.NewSocket("udp4", ":1234")
 
-	udpAdrr, err := socket.CreateUpdAddress()
+	udpAddress, err := socket.CreateUpdAddress()
 	if err != nil {
 		log.Println(err)
 	}
 
-	connection, err := socket.SocketConnect(udpAdrr)
+	connection, err := socket.ServerSocketConnect(udpAddress)
+	if err != nil {
+		log.Println(err)
+	}
 
 	if err != nil {
 		log.Println(err)
 	}
 
-	myValue := socket.Receive(connection)
+	myValue, err := socket.ReceiveMessage(connection)
+	if err != nil {
+		log.Println(err)
+	}
 
 	log.Println("MY VALUES SERVER:", myValue)
 
-	socket.Send("vova mtf lab", udpAdrr)
+	if err = socket.SendMessage("vova mtf lab", udpAddress, connection); err != nil {
+		log.Println(err)
+	}
 
-	newVal := socket.Receive(connection)
+	newVal, err := socket.ReceiveMessage(connection)
 
-	socket.Send(newVal+"-no you!", udpAdrr)
+	if err != nil {
+		log.Println(err)
+	}
 
-	log.Println(socket.Receive(connection))
+	if err = socket.SendMessage(newVal+"-no you!", udpAddress, connection); err != nil {
+		log.Println(err)
+	}
+
+	log.Println(socket.ReceiveMessage(connection))
 
 }

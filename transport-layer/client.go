@@ -7,29 +7,39 @@ import (
 
 func main() {
 
-	socket := protocol.NewSocket("udp4", ":8080")
+	socket := protocol.NewSocket("udp4", "127.0.0.1:1234")
 
-	udpAdrr, err := socket.CreateUpdAddress()
+	udpAddress, err := socket.CreateUpdAddress()
 	if err != nil {
 		log.Println(err)
 	}
 
-	connection, err := socket.SocketConnect(udpAdrr)
-
+	connection, err := socket.ClientSocket(udpAddress)
 	if err != nil {
 		log.Println(err)
 	}
 
-	receivedValue := socket.Receive(connection)
+	receivedValue, err := socket.ReceiveMessage(connection)
+
+	if err != nil {
+		log.Println(err)
+	}
 
 	log.Println("RECEIVED VALUE:", receivedValue)
 
-	socket.Send(receivedValue+"vova", udpAdrr)
+	if err = socket.SendMessage(receivedValue+"vova", udpAddress, connection); err != nil {
+		log.Println(err)
+	}
 
-	newVal := socket.Receive(connection)
+	newVal, err := socket.ReceiveMessage(connection)
 
-	socket.Send(newVal, udpAdrr)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if err = socket.SendMessage(newVal, udpAddress, connection); err != nil {
+		log.Println(err)
+	}
 
 	log.Println("NEW VALUE:", newVal)
-
 }
