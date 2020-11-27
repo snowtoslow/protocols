@@ -13,25 +13,25 @@ func main() {
 
 	udpAddress, err := socket.CreateUpdAddress()
 	if err != nil {
-		log.Println(err)
+		log.Println("ERR0:", err)
 	}
 
 	connection, err := socket.ServerSocketConnect(udpAddress)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERR1:", err)
 	}
 
 	defer connection.Close()
 
 	myValue, err := socket.ReceiveMessage(connection)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERR2:", err)
 	}
 
 	log.Println("MY VALUES SERVER:", myValue)
 
 	if err = socket.SendMessage("vova mtf lab", connection); err != nil {
-		log.Println(err)
+		log.Println("ERR3:", err)
 	}
 
 	newVal, err := socket.ReceiveMessage(connection)
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	if err = socket.SendMessage(newVal+"-no you!", connection); err != nil {
-		log.Println(err)
+		log.Println("ERR4:", err)
 	}
 
 	log.Println(socket.ReceiveMessage(connection))

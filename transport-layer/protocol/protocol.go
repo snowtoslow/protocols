@@ -70,42 +70,6 @@ func (socket *Socket) ReceiveMessage(connection *net.UDPConn) (valToRet string, 
 			}
 		}
 
-		/*_, _, err := connection.ReadFromUDP(buffer)
-
-		if err != nil {
-			return "err1", err
-		}
-		log.Println("BUFFER:",string(buffer))
-		if err = json.Unmarshal(buffer, &receivedStruct);err!=nil{
-			return "err2", err
-		}
-
-
-		if utils.ValidatePacket(receivedStruct) {
-			myMagicBytes, err := json.Marshal(utils.CreatePacket("ack"))
-			// Convert bytes to string.
-			if err!=nil {
-				return "err3",err
-			}
-			_, err = connection.Write(myMagicBytes)
-			if err != nil {
-				return "err4", err
-			}
-
-			if receivedStruct.Payload == "connect" {
-				//socket.port = address.Port
-				log.Println("connection established!")
-				return "connection established!", nil
-			} else {
-				valToRet = receivedStruct.Payload
-			}
-		} else {
-			myMagicBytes, err := json.Marshal(utils.CreatePacket("nack"))
-			// Convert bytes to string.
-			if err!=nil {
-				return valToRet,err
-			}
-			_, err = connection.Write(myMagicBytes)*/
 	}
 	//return valToRet, err
 }
@@ -159,40 +123,6 @@ func (socket *Socket) SendMessage(message string, connection *net.UDPConn) (err 
 
 		log.Println("LAST BUFFER:", string(buffer))
 	}
-
-	/*myMagicBytes, err := json.Marshal(utils.CreatePacket(message))
-	// Convert bytes to string.
-	if err!=nil {
-		return
-	}
-	_, err = connection.Write(myMagicBytes)
-
-	if err != nil {
-		return
-	}
-
-	_, _, err = connection.ReadFromUDP(buffer)
-
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(buffer, &receivedStruct)
-	if err != nil {
-		return err
-	}
-
-	if receivedStruct.Payload != "nack" {
-		_, err := connection.Write(myMagicBytes)
-		if err != nil {
-			return err
-		}
-		_, _, err = connection.ReadFromUDP(buffer)
-
-		if err != nil {
-			return err
-		}
-	}*/
 
 	return nil
 }
