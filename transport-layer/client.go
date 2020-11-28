@@ -1,49 +1,48 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"log"
+	"os"
 	"protocols/transport-layer/protocol"
+	"strings"
 )
 
 func main() {
 
-	log.Println("CLIENT")
+	socket := protocol.NewMagicSocket("udp", "localhost:1234")
 
-	socket := protocol.NewSocket("udp4", "127.0.0.1:1234")
-
-	udpAddress, err := socket.CreateUpdAddress()
+	address, err := socket.CreateUdpAddress()
 	if err != nil {
-		log.Println(err)
+		log.Println("Err1:", err)
 	}
 
-	connection, err := socket.ClientSocket(udpAddress)
+	connection, err := socket.ClientSocket(address)
+
+	log.Println("CLIENT!")
+
 	if err != nil {
-		log.Println(err)
+		log.Println("Err2", err)
 	}
 
+	fmt.Printf("The UDP server is %s\n", connection.RemoteAddr().String())
 	defer connection.Close()
 
-	receivedValue, err := socket.ReceiveMessage(connection)
+	for {
 
-	if err != nil {
-		log.Println(err)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print(">> ")
+		text, _ := reader.ReadString('\n')
+
+		if strings.TrimSpace(text) == "STOP" {
+			fmt.Println("Exiting UDP client!")
+			return
+		}
+
+		if err := socket.SendMessage(connection, text); err != nil {
+			log.Println(err)
+		}
 	}
 
-	log.Println("RECEIVED VALUE:", receivedValue)
-
-	if err = socket.SendMessage(receivedValue+"vova", connection); err != nil {
-		log.Println(err)
-	}
-
-	newVal, err := socket.ReceiveMessage(connection)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	if err = socket.SendMessage(newVal, connection); err != nil {
-		log.Println(err)
-	}
-
-	log.Println("NEW VALUE:", newVal)
 }

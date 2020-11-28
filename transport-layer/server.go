@@ -7,43 +7,25 @@ import (
 
 func main() {
 
-	log.Println("SERVER")
+	socket := protocol.NewMagicSocket("udp4", ":1234")
 
-	socket := protocol.NewSocket("udp4", ":1234")
-
-	udpAddress, err := socket.CreateUpdAddress()
+	udpAddress, err := socket.CreateUdpAddress()
 	if err != nil {
 		log.Println("ERR0:", err)
 	}
 
-	connection, err := socket.ServerSocketConnect(udpAddress)
+	connection, err := socket.ServerSocket(udpAddress)
 	if err != nil {
 		log.Println("ERR1:", err)
 	}
 
+	log.Println("SERVER!")
+
 	defer connection.Close()
 
-	myValue, err := socket.ReceiveMessage(connection)
-	if err != nil {
-		log.Println("ERR2:", err)
+	for {
+		if err != socket.ReceiveMessage(connection) {
+			log.Println("err", err)
+		}
 	}
-
-	log.Println("MY VALUES SERVER:", myValue)
-
-	if err = socket.SendMessage("vova mtf lab", connection); err != nil {
-		log.Println("ERR3:", err)
-	}
-
-	newVal, err := socket.ReceiveMessage(connection)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	if err = socket.SendMessage(newVal+"-no you!", connection); err != nil {
-		log.Println("ERR4:", err)
-	}
-
-	log.Println(socket.ReceiveMessage(connection))
-
 }
