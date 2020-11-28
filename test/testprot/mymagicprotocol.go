@@ -21,19 +21,37 @@ func NewMagicSocket(network string, address string) *MyMagicSocket {
 
 func (socket *MyMagicSocket) SendMessage(connection *net.UDPConn, message string) (err error) {
 
+	myMagicCounter := 5
+
 	buffer := make([]byte, constants.BUFF_SIZE)
 
 	packet := utils.CreatePacket(message)
 
 	bytesFromPacket, err := utils.CreateBytesFromPacket(&packet)
 
-	if _, err := connection.Write(bytesFromPacket); err != nil {
-		return err
+	for i := 0; i < myMagicCounter; i++ {
+
+		if _, err := connection.Write(bytesFromPacket); err != nil {
+			return err
+		}
+
+		n, addr, err := connection.ReadFromUDP(buffer)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("msg: %s, addr: %s", buffer[:n], addr)
+
+		packetAfterRead, err := utils.CreateStructFromBytes(buffer[:n])
+		if err != nil {
+			return err
+		}
+
+		if packetAfterRead.Payload == "acknowledged" {
+			break
+		}
+
 	}
-
-	n, _, _ := connection.ReadFrom(buffer)
-
-	log.Println(string(buffer[:n]))
 
 	return nil
 }
