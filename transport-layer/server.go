@@ -23,8 +23,12 @@ func main() {
 
 	defer connection.Close()
 
+	if err := socket.SendValueToClient(connection); err != nil {
+		log.Println(err)
+	}
+
 	for {
-		if err != socket.ReceiveMessage(connection) {
+		if err := socket.ReceiveMessage(connection); err != nil {
 			log.Println("err", err)
 		}
 	}

@@ -1,9 +1,12 @@
 package protocol
 
 import (
+	"crypto/rand"
+	"encoding/json"
 	"log"
 	"net"
 	"protocols/constants"
+	"protocols/security"
 	"protocols/utils"
 )
 
@@ -19,6 +22,100 @@ func NewMagicSocket(network string, address string) *MyMagicSocket {
 	}
 }
 
+func (socket *MyMagicSocket) SendValueToClient(connection *net.UDPConn) (err error) {
+
+	var clientStructReceived *security.ClintSecuredSendStruct
+
+	buffer := make([]byte, constants.BUFF_SIZE) //4000 in case of shit
+
+	n, add, err := connection.ReadFromUDP(buffer)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("n,add,err:", string(buffer[:n]), add, err)
+
+	if err := json.Unmarshal(buffer[:n], &clientStructReceived); err != nil {
+		return err
+	}
+
+	computedSharedKeyServer := security.ServerComputes(clientStructReceived)
+
+	log.Println("SHARED VALUE ON SERVER:", computedSharedKeyServer)
+
+	serverSecuredStructToClient, err := security.CreateSecuredStructToSendFromServerToClient(clientStructReceived.FirstPublicNum, clientStructReceived.SecondPublicNum)
+	if err != nil {
+		return err
+	}
+
+	log.Println("VALUE COMPUTED AND SEND:", serverSecuredStructToClient.ComputedValue)
+
+	bytesFromPacket, err := json.Marshal(&serverSecuredStructToClient)
+	if err != nil {
+		bytesFromPacket = nil
+	}
+
+	if _, err := connection.WriteToUDP(bytesFromPacket, add); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//func to put in client socket
+func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (err error) {
+	log.Println("Send to server!")
+
+	publicFirstNum, err := rand.Prime(rand.Reader, 16)
+	publicSecondNum, err := rand.Prime(rand.Reader, 16)
+	if err != nil {
+		return err
+	}
+
+	clientStruct, err := security.CreateSecuredStructToSendFromClientToServer(publicFirstNum, publicSecondNum)
+	if err != nil {
+		return err
+	}
+
+	bytesClientStruct, err := json.Marshal(clientStruct)
+	if err != nil {
+		return err
+	}
+
+	if _, err := connection.Write(bytesClientStruct); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (socket *MyMagicSocket) CheckForSecuredHandShake(connection *net.UDPConn) (err error) {
+
+	log.Println("CHECK FOR HANDSHAKE!")
+
+	publicFirstNum, err := rand.Prime(rand.Reader, 16)
+	publicSecondNum, err := rand.Prime(rand.Reader, 16)
+	if err != nil {
+		log.Println(err)
+	}
+
+	clientStruct, err := security.CreateSecuredStructToSendFromClientToServer(publicFirstNum, publicSecondNum)
+	if err != nil {
+		log.Println(err)
+	}
+
+	bytesClientStruct, err := json.Marshal(clientStruct)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if _, err := connection.Write(bytesClientStruct); err != nil {
+		log.Println(err)
+	}
+
+	return nil
+}
+
+//here is for client
 func (socket *MyMagicSocket) SendMessage(connection *net.UDPConn, message string) (err error) {
 
 	myMagicCounter := 5
@@ -56,6 +153,7 @@ func (socket *MyMagicSocket) SendMessage(connection *net.UDPConn, message string
 	return nil
 }
 
+//here is for server
 func (socket *MyMagicSocket) ReceiveMessage(connection *net.UDPConn) (err error) {
 
 	buffer := make([]byte, constants.BUFF_SIZE)
@@ -65,7 +163,7 @@ func (socket *MyMagicSocket) ReceiveMessage(connection *net.UDPConn) (err error)
 		return err
 	}
 
-	log.Printf("MSG, From addr :%s, %s", buffer[:n], add)
+	//log.Printf("MSG, From addr :%s, %s", buffer[:n], add)
 
 	packet, err := utils.CreateStructFromBytes(buffer[:n])
 	if err != nil {
@@ -102,6 +200,10 @@ func (socket *MyMagicSocket) ClientSocket(udpAddress *net.UDPAddr) (connection *
 	connection, err = net.DialUDP(socket.network, nil, udpAddress)
 	if err != nil {
 		connection = nil
+	}
+
+	if err := socket.SendPubNumToServer(connection); err != nil {
+		log.Println(err)
 	}
 
 	return
