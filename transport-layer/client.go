@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"protocols/constants"
 	"protocols/transport-layer/protocol"
 	"strings"
 )
@@ -29,14 +28,6 @@ func main() {
 
 	fmt.Printf("The UDP server is %s\n", connection.RemoteAddr().String())
 	defer connection.Close()
-
-	buffer := make([]byte, constants.BUFF_SIZE) //4000 in case of shit
-
-	n, add, err := connection.ReadFromUDP(buffer)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println("value from server which was computed:", string(buffer[:n]), add, err)
 
 	for {
 

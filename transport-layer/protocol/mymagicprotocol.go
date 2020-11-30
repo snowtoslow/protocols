@@ -65,8 +65,10 @@ func (socket *MyMagicSocket) SendValueToClient(connection *net.UDPConn) (err err
 func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (err error) {
 	log.Println("Send to server!")
 
-	publicFirstNum, err := rand.Prime(rand.Reader, 16)
-	publicSecondNum, err := rand.Prime(rand.Reader, 16)
+	var serverSecuredStruct *security.ServerSecuredStruct
+
+	publicFirstNum, err := rand.Prime(rand.Reader, 256)
+	publicSecondNum, err := rand.Prime(rand.Reader, 256)
 	if err != nil {
 		return err
 	}
@@ -85,32 +87,20 @@ func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (err er
 		return err
 	}
 
-	return nil
-}
+	buffer := make([]byte, constants.BUFF_SIZE) //4000 in case of shit
 
-func (socket *MyMagicSocket) CheckForSecuredHandShake(connection *net.UDPConn) (err error) {
-
-	log.Println("CHECK FOR HANDSHAKE!")
-
-	publicFirstNum, err := rand.Prime(rand.Reader, 16)
-	publicSecondNum, err := rand.Prime(rand.Reader, 16)
+	n, _, err := connection.ReadFromUDP(buffer)
 	if err != nil {
 		log.Println(err)
 	}
 
-	clientStruct, err := security.CreateSecuredStructToSendFromClientToServer(publicFirstNum, publicSecondNum)
-	if err != nil {
-		log.Println(err)
+	if err := json.Unmarshal(buffer[:n], &serverSecuredStruct); err != nil {
+		return err
 	}
 
-	bytesClientStruct, err := json.Marshal(clientStruct)
-	if err != nil {
-		log.Println(err)
-	}
+	myVal := security.ClientComputes(serverSecuredStruct, publicFirstNum)
 
-	if _, err := connection.Write(bytesClientStruct); err != nil {
-		log.Println(err)
-	}
+	log.Println("MY VALUE after client computes:", myVal)
 
 	return nil
 }

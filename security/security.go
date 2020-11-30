@@ -1,7 +1,10 @@
 package security
 
 import (
+	"crypto/aes"
 	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"math/big"
 )
@@ -58,15 +61,14 @@ func CreateSecuredStructToSendFromServerToClient(firstPublicNum *big.Int, second
 func ClientComputes(serverStruct *ServerSecuredStruct, firstGeneratedNum *big.Int) *ValuesComputedAfterSend {
 	serverReceivedValues := serverStruct.ComputedValue
 	return &ValuesComputedAfterSend{
-		Value: serverReceivedValues.Mod(serverReceivedValues, firstGeneratedNum),
+		Value: new(big.Int).Mod(serverReceivedValues, firstGeneratedNum),
 	}
 }
 
 //shared key in server
 func ServerComputes(clientStruct *ClintSecuredSendStruct) *ValuesComputedAfterSend {
-	serverReceivedValue := clientStruct.ComputedValue
 	return &ValuesComputedAfterSend{
-		Value: serverReceivedValue.Mod(serverReceivedValue, clientStruct.FirstPublicNum),
+		Value: new(big.Int).Mod(clientStruct.ComputedValue, clientStruct.FirstPublicNum),
 	}
 }
 
@@ -81,9 +83,39 @@ func clientComputesValueToSend(firstPublicNum *big.Int, secondPublicNum *big.Int
 }
 
 func GeneratePrivateKey() (privateKey *big.Int, err error) {
-	privateKey, err = rand.Prime(rand.Reader, 16)
+	privateKey, err = rand.Prime(rand.Reader, 8)
 	if err != nil {
 		privateKey = nil
 	}
 	return
+}
+
+func encryptAES(key []byte, plaintext string) string {
+	// create cipher
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(len(plaintext))
+	// allocate space for ciphered data
+	//min length for plain text need to be 16 bytes
+	out := make([]byte, aes.BlockSize+len(plaintext))
+
+	// encrypt
+	c.Encrypt(out, []byte(plaintext))
+	// return hex string
+	return hex.EncodeToString(out)
+}
+
+func Decrypt(key []byte, ct string) {
+	ciphertext, _ := hex.DecodeString(ct)
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		fmt.Errorf("NewCipher(%d bytes) = %s", len(key), err)
+		panic(err)
+	}
+	plain := make([]byte, len(ciphertext))
+	c.Decrypt(plain, ciphertext)
+	s := string(plain[:])
+	fmt.Printf("AES Decrypyed Text:  %s\n", s)
 }
