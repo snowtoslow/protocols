@@ -28,26 +28,29 @@ func (socket *MyMagicSocket) SendValueToClient(connection *net.UDPConn) (err err
 
 	buffer := make([]byte, constants.BUFF_SIZE) //4000 in case of shit
 
+	serverSecret, err := security.GeneratePrivateKey()
+	if err != nil {
+		return err
+	}
+
 	n, add, err := connection.ReadFromUDP(buffer)
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println("n,add,err:", string(buffer[:n]), add, err)
 
 	if err := json.Unmarshal(buffer[:n], &clientStructReceived); err != nil {
 		return err
 	}
 
-	computedSharedKeyServer := security.ServerComputes(clientStructReceived)
+	computedSharedKeyServer := security.ServerComputes(clientStructReceived, serverSecret)
 
 	log.Println("SHARED VALUE ON SERVER:", computedSharedKeyServer)
 
-	serverSecuredStructToClient, err := security.CreateSecuredStructToSendFromServerToClient(clientStructReceived.FirstPublicNum, clientStructReceived.SecondPublicNum)
+	serverSecuredStructToClient, err := security.CreateSecuredStructToSendFromServerToClient(clientStructReceived.FirstPublicNum,
+		clientStructReceived.SecondPublicNum, serverSecret)
 	if err != nil {
 		return err
 	}
-
-	log.Println("VALUE COMPUTED AND SEND:", serverSecuredStructToClient.ComputedValue)
 
 	bytesFromPacket, err := json.Marshal(&serverSecuredStructToClient)
 	if err != nil {
@@ -58,6 +61,22 @@ func (socket *MyMagicSocket) SendValueToClient(connection *net.UDPConn) (err err
 		return err
 	}
 
+	n, add, err = connection.ReadFromUDP(buffer)
+	if err != nil {
+		return err
+	}
+
+	log.Println("SERVER READ FROM CLIENT SHARED KEY:", string(buffer[:n]), add)
+	var sharedClientKey *security.ValuesComputedAfterSend
+
+	if err = json.Unmarshal(buffer[:n], &sharedClientKey); err != nil {
+		return err
+	}
+
+	log.Println("CLIENT SHARED ON SERVER:", sharedClientKey.Value)
+	log.Println("SERVER SHARED ON SERVER:", computedSharedKeyServer.Value)
+	log.Printf("IS TRUE: %v", sharedClientKey.Value.Cmp(computedSharedKeyServer.Value)) // if we compare two big ints with Cmp it will return 0 if they are equals;
+
 	return nil
 }
 
@@ -67,13 +86,19 @@ func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (err er
 
 	var serverSecuredStruct *security.ServerSecuredStruct
 
-	publicFirstNum, err := rand.Prime(rand.Reader, 256)
-	publicSecondNum, err := rand.Prime(rand.Reader, 256)
+	clientSecret, err := security.GeneratePrivateKey()
 	if err != nil {
 		return err
 	}
 
-	clientStruct, err := security.CreateSecuredStructToSendFromClientToServer(publicFirstNum, publicSecondNum)
+	publicFirstNum, err := rand.Prime(rand.Reader, 256)
+	publicSecondNum, err := rand.Prime(rand.Reader, 256)
+
+	if err != nil {
+		return err
+	}
+
+	clientStruct, err := security.CreateSecuredStructToSendFromClientToServer(publicFirstNum, publicSecondNum, clientSecret)
 	if err != nil {
 		return err
 	}
@@ -98,9 +123,18 @@ func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (err er
 		return err
 	}
 
-	myVal := security.ClientComputes(serverSecuredStruct, publicFirstNum)
+	sharedValueClient := security.ClientComputes(serverSecuredStruct, publicFirstNum, clientSecret)
 
-	log.Println("MY VALUE after client computes:", myVal)
+	log.Println("SHARED VALUE ON CLIENT:", sharedValueClient)
+
+	sharedBytesStruct, err := json.Marshal(sharedValueClient)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if _, err := connection.Write(sharedBytesStruct); err != nil {
+		return err
+	}
 
 	return nil
 }
