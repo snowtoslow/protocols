@@ -29,6 +29,13 @@ func main() {
 	fmt.Printf("The UDP server is %s\n", connection.RemoteAddr().String())
 	defer connection.Close()
 
+	sharedClient, err := socket.SendPubNumToServer(connection)
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println("SHARED VALUE ON CLIENT:", sharedClient)
+
 	for {
 
 		reader := bufio.NewReader(os.Stdin)

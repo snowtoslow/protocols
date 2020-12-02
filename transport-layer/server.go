@@ -23,9 +23,12 @@ func main() {
 
 	defer connection.Close()
 
-	if err := socket.SendValueToClient(connection); err != nil {
+	sharedServerKey, err := socket.SendValueToClient(connection)
+	if err != nil {
 		log.Println(err)
 	}
+
+	log.Println("SHARED SERVER KEY!", sharedServerKey)
 
 	for {
 		if err := socket.ReceiveMessage(connection); err != nil {
