@@ -214,17 +214,18 @@ func (socket *MyMagicSocket) performRetransmission(connection *net.UDPConn, byte
 	return nil
 }
 
-func (socket *MyMagicSocket) HandleServer(connection *net.UDPConn) error {
+func (socket *MyMagicSocket) HandleServer(connection *net.UDPConn) ([]byte, error) {
 	packet, add, err := socket.CreateStruct(connection)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if _, err := socket.ValidateMsg(connection, packet, add); err != nil {
-		return err
+	bytesForPacketToDecrypt, err := socket.ValidateMsg(connection, packet, add)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return bytesForPacketToDecrypt, err
 }
 
 func (socket *MyMagicSocket) CreateStruct(connection *net.UDPConn) (bytesForPacket []byte, add *net.UDPAddr, err error) {

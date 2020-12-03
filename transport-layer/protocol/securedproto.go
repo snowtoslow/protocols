@@ -25,17 +25,12 @@ func (socket *MyMagicSocket) SecuredSend(connection *net.UDPConn, sharedClient [
 
 func (socket *MyMagicSocket) SecuredReceive(connection *net.UDPConn, sharedServer []byte) (err error) {
 
-	bytes, addr, err := socket.CreateStruct(connection)
+	validatedPacketToDecrypt, err := socket.HandleServer(connection)
 	if err != nil {
 		return err
 	}
 
-	validatedBytes, err := socket.ValidateMsg(connection, bytes, addr)
-	if err != nil {
-		return err
-	}
-
-	newStruct, err := utils.CreateStructFromBytes(validatedBytes)
+	newStruct, err := utils.CreateStructFromBytes(validatedPacketToDecrypt)
 	if err != nil {
 		return err
 	}
