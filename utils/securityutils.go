@@ -18,7 +18,7 @@ func CreateEncryptedPacket(message string, key []byte) (encryptedBytesFromPacket
 	if err != nil {
 		encryptedBytesFromPacket = nil
 	}
-	encryptedBytesFromPacket, err = encrypt(key, myBytesPacket)
+	encryptedBytesFromPacket, err = Encrypt(key, myBytesPacket)
 	if err != nil {
 		encryptedBytesFromPacket = nil
 	}
@@ -27,7 +27,7 @@ func CreateEncryptedPacket(message string, key []byte) (encryptedBytesFromPacket
 }
 
 func DecryptBytesIntoStruct(encryptedBytes, key []byte) (myMagicPacketAfterDecryption *models.Packet, err error) {
-	decryptedBytes, err := decrypt(key, encryptedBytes)
+	decryptedBytes, err := Decrypt(key, encryptedBytes)
 	if err != nil {
 		myMagicPacketAfterDecryption = nil
 	}
@@ -39,7 +39,7 @@ func DecryptBytesIntoStruct(encryptedBytes, key []byte) (myMagicPacketAfterDecry
 	return
 }
 
-func encrypt(key, text []byte) ([]byte, error) {
+func Encrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func encrypt(key, text []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func decrypt(key, text []byte) ([]byte, error) {
+func Decrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

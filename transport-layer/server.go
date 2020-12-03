@@ -31,8 +31,12 @@ func main() {
 	log.Println("SHARED SERVER KEY!", sharedServerKey)
 
 	for {
-		if err := socket.ReceiveMessage(connection); err != nil {
+		/*if _,err := socket.HandleServer(connection); err != nil {
 			log.Println("err", err)
+		}*/
+
+		if err := socket.SecuredReceive(connection, sharedServerKey.Bytes()); err != nil {
+			log.Println(err)
 		}
 	}
 }

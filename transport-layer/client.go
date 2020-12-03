@@ -47,7 +47,11 @@ func main() {
 			return
 		}
 
-		if err := socket.SendMessage(connection, text); err != nil {
+		/*if err := socket.HandleClient(connection, text); err != nil {
+			log.Println(err)
+		}*/
+
+		if err != socket.SecuredSend(connection, sharedClient.Bytes(), text) {
 			log.Println(err)
 		}
 	}

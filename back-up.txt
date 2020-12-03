@@ -157,34 +157,34 @@ func (socket *MyMagicSocket) SendPubNumToServer(connection *net.UDPConn) (shared
 	return
 }
 
-func (socket *MyMagicSocket) HandleClient(connection *net.UDPConn, message string) (err error) {
+func(socket *MyMagicSocket)HandleClient(connection *net.UDPConn,message string)(err error){
 	bytesFromPacket, err := socket.CreateMsg(message)
-	if err != nil {
+	if err!=nil {
 		return err
 	}
 
-	if err := socket.performRetransmission(connection, bytesFromPacket); err != nil {
+	if err := socket.performRetransmission(connection,bytesFromPacket);err!=nil{
 		return err
 	}
 
 	return nil
 }
 
-func (socket *MyMagicSocket) CreateMsg(message string) (bytesFromPacket []byte, err error) {
+func (socket *MyMagicSocket) CreateMsg(message string) (bytesFromPacket []byte,err error){
 
 	packet := utils.CreatePacket(message)
 
 	log.Println(packet.CheckSum)
 
 	bytesFromPacket, err = utils.CreateBytesFromPacket(&packet)
-	if err != nil {
+	if err!=nil{
 		return nil, err
 	}
 
 	return
 }
 
-func (socket *MyMagicSocket) performRetransmission(connection *net.UDPConn, bytesFromPacket []byte) (err error) {
+func (socket *MyMagicSocket) performRetransmission(connection *net.UDPConn,bytesFromPacket []byte) (err error){
 
 	buffer := make([]byte, constants.BUFF_SIZE)
 	for i := 0; i < 5; i++ {
@@ -214,25 +214,67 @@ func (socket *MyMagicSocket) performRetransmission(connection *net.UDPConn, byte
 	return nil
 }
 
-func (socket *MyMagicSocket) HandleServer(connection *net.UDPConn) error {
-	packet, add, err := socket.CreateStruct(connection)
-	if err != nil {
+//here is for client
+func (socket *MyMagicSocket) SendMessage(connection *net.UDPConn, message string) (err error) {
+
+	myMagicCounter := 5
+
+	buffer := make([]byte, constants.BUFF_SIZE)
+
+	packet := utils.CreatePacket(message)
+
+	bytesFromPacket, err := utils.CreateBytesFromPacket(&packet)
+	if err!=nil{
 		return err
 	}
 
-	if _, err := socket.ValidateMsg(connection, packet, add); err != nil {
+	for i := 0; i < myMagicCounter; i++ {
+
+		if _, err := connection.Write(bytesFromPacket); err != nil {
+			return err
+		}
+
+		n, addr, err := connection.ReadFromUDP(buffer)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("msg: %s, addr: %s", buffer[:n], addr)
+
+		packetAfterRead, err := utils.CreateStructFromBytes(buffer[:n])
+		if err != nil {
+			return err
+		}
+
+		if packetAfterRead.Payload == "acknowledged" {
+			break
+		}
+
+	}
+
+	return nil
+}
+
+
+func(socket *MyMagicSocket)HandleServer(connection *net.UDPConn) error {
+	packet, add, err := socket.CreateStruct(connection)
+	if err!=nil {
+		return err
+	}
+
+	if _, err := socket.ValidateMsg(connection,packet,add);err!=nil{
 		return err
 	}
 
 	return nil
 }
 
-func (socket *MyMagicSocket) CreateStruct(connection *net.UDPConn) (bytesForPacket []byte, add *net.UDPAddr, err error) {
+func (socket *MyMagicSocket) CreateStruct(connection *net.UDPConn) (bytesForPacket []byte,add *net.UDPAddr,err error){
 	buffer := make([]byte, constants.BUFF_SIZE)
 
 	n, add, err := connection.ReadFromUDP(buffer)
 	if err != nil {
-		return nil, nil, err
+		return nil,nil, err
 	}
 
 	bytesForPacket = buffer[:n]
@@ -240,14 +282,15 @@ func (socket *MyMagicSocket) CreateStruct(connection *net.UDPConn) (bytesForPack
 	return
 }
 
-func (socket *MyMagicSocket) ValidateMsg(connection *net.UDPConn, bytes []byte, add *net.UDPAddr) (myReceivedBytes []byte, err error) {
+
+func (socket *MyMagicSocket) ValidateMsg(connection *net.UDPConn,bytes []byte,add *net.UDPAddr) (myReceivedBytes []byte,err error){
 
 	packet, err := utils.CreateStructFromBytes(bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Packet checksum:", packet.CheckSum)
+	log.Println("Packet checksum:",packet.CheckSum)
 
 	if utils.ValidatePacket(packet) {
 		ackPacket := utils.CreatePacket("acknowledged")
@@ -255,6 +298,53 @@ func (socket *MyMagicSocket) ValidateMsg(connection *net.UDPConn, bytes []byte, 
 		if err != nil {
 			myReceivedBytes = nil
 		}
+
+
+		if _, err := connection.WriteToUDP(bytesAcknowledge, add); err != nil {
+			myReceivedBytes = nil
+		}
+
+	} else {
+		notAck := utils.CreatePacket("not acknowledged")
+		bytesNotAcknowledge, err := utils.CreateBytesFromPacket(&notAck)
+		if err != nil {
+			myReceivedBytes = nil
+		}
+
+		if _, err := connection.WriteToUDP(bytesNotAcknowledge, add); err != nil {
+			myReceivedBytes = nil
+		}
+	}
+
+	return
+}
+
+
+//here is for server
+func (socket *MyMagicSocket) ReceiveMessage(connection *net.UDPConn) (myReceivedBytes []byte,err error) {
+
+	buffer := make([]byte, constants.BUFF_SIZE)
+
+	n, add, err := connection.ReadFromUDP(buffer)
+	if err != nil {
+		myReceivedBytes = nil
+	}
+
+	//log.Printf("MSG, From addr :%s, %s", buffer[:n], add)
+
+	packet, err := utils.CreateStructFromBytes(buffer[:n])
+	if err != nil {
+		myReceivedBytes = nil
+	}
+
+	if utils.ValidatePacket(packet) {
+		ackPacket := utils.CreatePacket("acknowledged")
+		bytesAcknowledge, err := utils.CreateBytesFromPacket(&ackPacket)
+		if err != nil {
+			myReceivedBytes = nil
+		}
+
+		myReceivedBytes = buffer[:n]
 
 		if _, err := connection.WriteToUDP(bytesAcknowledge, add); err != nil {
 			myReceivedBytes = nil
