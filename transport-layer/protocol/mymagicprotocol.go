@@ -174,12 +174,12 @@ func (socket *MyMagicSocket) CreateMsg(message string) (bytesFromPacket []byte, 
 
 	packet := utils.CreatePacket(message)
 
-	log.Println(packet.CheckSum)
-
 	bytesFromPacket, err = utils.CreateBytesFromPacket(&packet)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("String in send msg:", string(bytesFromPacket))
 
 	return
 }
@@ -247,14 +247,14 @@ func (socket *MyMagicSocket) ValidateMsg(connection *net.UDPConn, bytes []byte, 
 		return nil, err
 	}
 
-	log.Println("Packet checksum:", packet.CheckSum)
-
 	if utils.ValidatePacket(packet) {
 		ackPacket := utils.CreatePacket("acknowledged")
 		bytesAcknowledge, err := utils.CreateBytesFromPacket(&ackPacket)
 		if err != nil {
 			myReceivedBytes = nil
 		}
+
+		myReceivedBytes = bytes
 
 		if _, err := connection.WriteToUDP(bytesAcknowledge, add); err != nil {
 			myReceivedBytes = nil

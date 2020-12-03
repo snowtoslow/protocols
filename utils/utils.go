@@ -25,6 +25,12 @@ func getMD5HAsh(message string) string {
 	return hex.EncodeToString(myMagicHasher.Sum(nil))
 }
 
+func GetMD5HAsh(message string) string {
+	myMagicHasher := md5.New()
+	myMagicHasher.Write([]byte(message))
+	return hex.EncodeToString(myMagicHasher.Sum(nil))
+}
+
 func CreateBytesFromPacket(packet *models.Packet) (bytesFromPacket []byte, err error) {
 	bytesFromPacket, err = json.Marshal(packet)
 	if err != nil {
