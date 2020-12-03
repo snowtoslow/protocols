@@ -1,6 +1,6 @@
-# Protocols
-* [Transport layer](#Transport layer)
-* [Security layer](#Security layer)
+## Protocol
+* [Transport layer](#transport-layer)
+* [Security layer](#security-layer)
 
 In this project I've implemented two layers of a protocol, the transport layer atop udp and the security layer.
 
